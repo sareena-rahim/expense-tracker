@@ -6,11 +6,20 @@ class ExpenseTrackerApp:
         self.root=root
         self.root.title("Expense Tracker")
         self.root.geometry("400x300")
+        self.current_user=None
+        self.access_token=None
+        self.basic_url="http://localhost:8000"
+
+        self.show_login_frame()
+    def show_login_frame(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        label=ttk.Label(self.root,text="Expense Tracker Login")
+        label.pack(pady=20)
+        
 
 
-        #Test: Basic window should open
-        test_label=ttk.Label(text="Tkinter Working",font=("Arial",16))
-        test_label.pack(pady=50)
 
 if __name__=="__main__":
     root=tk.Tk()
