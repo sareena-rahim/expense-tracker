@@ -1,4 +1,5 @@
 import tkinter as tk
+from calendar import day_abbr
 from tkinter import ttk,messagebox
 import requests
 
@@ -64,7 +65,28 @@ class ExpenseTrackerApp:
     def login(self):
         email=self.email_entry.get()
         password=self.password_entry.get()
-        messagebox.showinfo("Info",f"Login attempted with: {email}")
+
+        try:
+            response=requests.post(f"{self.base_url}/login",
+                                   json={"email":email,"password":password})
+
+
+            if response.status_code==200:
+                data=response.json()
+                self.access_token=data["access_token"]
+                self.current_user=data["user"]
+
+                messagebox.showinfo("Success", f"Welcome back, {data['user']['email']}!")
+                self.show_main_app()
+
+            else:
+                messagebox.showerror("Error","Login failed")
+
+        except Exception as e:
+            messagebox.showerror("Error",f"Connection error : {str(e)}")
+
+
+
 
     def show_signup_frame(self):
         """place holder for signup"""
