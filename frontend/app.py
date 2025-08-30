@@ -87,7 +87,7 @@ class ExpenseTrackerApp:
 
 
     def show_signup_frame(self):
-        """place holder for signup"""
+        
         messagebox.showinfo("Info","Signup frame will be implemented")
 
 
@@ -165,19 +165,96 @@ class ExpenseTrackerApp:
         refresh_btn=ttk.Button(main_frame,text="Refresh",command=self.load_expenses)
         refresh_btn.grid(row=7,column=0,pady=5,columnspan=3)
 
-
+        self.load_expenses()
         #NEW methods for expense operations
     def add_expense(self):
-        """for add expense"""
-        messagebox.showinfo("Info","Add expense functionality will be implemented")
+        """add new expense via API"""
+        try:
+            amount=self.amount_entry.get()
+            category=self.category_entry.get()
+            note=self.note_entry.get()
+
+            if not amount or not category:
+                messagebox.showwarning("warning","Amount and category are required")
+                return
+            headers={"Authorization":f"Bearer {self.access_token}"}
+            data={
+                "amount":float(amount),
+                "category":category,
+                "note":note
+            }
+            response=requests.post(f"{self.base_url}/expense",json=data,headers=headers)
+
+            if response.status_code==200:
+                #Clear form fields
+                self.amount_entry.delete(0,tk.END)
+                self.category_entry.delete(0,tk.END)
+                self.note_entry.delete(0,tk.END)
+
+                #Refresh expenses list
+                self.load_expenses()
+                messagebox.showinfo("success","Expense added successfully")
+
+            else:
+                messagebox.showerror("Error","Failed to add expense")
+
+        except ValueError:
+            messagebox.showerror("Error","Amount must be a number")
+
+        except Exception as e:
+            messagebox.showerror("Error",f"Failed to add expense: {str(e)}")
+
+
+
+
 
     def delete_expense(self):
-        """for delete expense"""
-        messagebox.showinfo("Info","Delete expense functionality will be implemented")
+        """Delete the selected expense"""
+        selected=self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Warning","please select an expense to delete")
+            return
+        expense_id=self.tree.item(selected[0])["values"][0]
+
+        try:
+            headers={"Authorization":f"Bearer {self.access_token}"}
+            response=requests.delete(f"{self.base_url}/expense/{expense_id}",headers=headers)
+
+            if response.status_code==200:
+                self.load_expenses()
+                messagebox.showinfo("Success","Expense deleted successfully")
+            else:
+                messagebox.showerror("Error","Failed to delete expense")
+        except Exception as e:
+            messagebox.showerror("Error",f"Failed to delete expense {str(e)}")
+
 
     def load_expenses(self):
-        """for load expense"""
-        messagebox.showinfo("Info","Load expense functionality will be implemented")
+        """fetch and display expenses from API"""
+        try:
+            headers={"Authorization":f'Bearer {self.access_token}'}
+            response=requests.get(f"{self.base_url}/expenses",headers=headers)
+            if response.status_code==200:
+                #Clear existing items in tree view
+                for item in self.tree.get_children():
+                    self.tree.delete(item)
+
+                #Add expenses to treeview
+                expenses=response.json().get("expenses",[])
+                for expense in expenses:
+                    self.tree.insert("","end",values=(
+                        expense["id"],
+                        expense['amount'],
+                        expense["category"],
+                        expense["note"],
+                        expense["date"]
+                    ))
+
+            else:
+                messagebox.showerror("Error","Failed to load expenses")
+
+        except Exception as e:
+            messagebox.showerror("Error",f"Failed to load expenses: {str(e)}")
 
     def logout(self):
         """Logout and return to login screen"""
