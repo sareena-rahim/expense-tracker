@@ -1,5 +1,6 @@
 import tkinter as tk
 from calendar import day_abbr
+from dbm import error
 from tkinter import ttk,messagebox
 import requests
 
@@ -87,10 +88,94 @@ class ExpenseTrackerApp:
 
 
     def show_signup_frame(self):
-        
-        messagebox.showinfo("Info","Signup frame will be implemented")
+        """User registration form"""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        signup_frame=ttk.Frame(self.root,padding=20)
+        signup_frame.grid(row=0,column=0,sticky=(tk.W,tk.E,tk.S,tk.N))
+
+        self.root.columnconfigure(0,weight=1)
+        self.root.rowconfigure(0,weight=1)
+        signup_frame.columnconfigure(1,weight=1)
+
+        #Title
+        label=ttk.Label(signup_frame,text="Create New Account",font=("Arial",14))
+        label.grid(row=0,column=0,columnspan=2,pady=20)
+
+        #Email field
+        ttk.Label(signup_frame,text="Email:").grid(row=1,column=0,sticky=tk.W,pady=5)
+        self.signup_email=ttk.Entry(signup_frame,width=30)
+        self.signup_email.grid(row=1,column=1,padx=10,pady=5,sticky=tk.EW)
+
+        #password field
+        ttk.Label(signup_frame,text="Password:").grid(row=2,column=0,sticky=tk.W,pady=5)
+        self.signup_password=ttk.Entry(signup_frame,width=30,show="*")
+        self.signup_password.grid(row=2,column=1,padx=10,pady=5,sticky=tk.EW)
+
+        #Confirm password field
+        ttk.Label(signup_frame,text="Confirm Password").grid(row=3,column=0,sticky=tk.W,pady=5)
+        self.signup_confirm=ttk.Entry(signup_frame,width=30,show="*")
+        self.signup_confirm.grid(row=3,column=1,padx=10,pady=5,sticky=tk.EW)
 
 
+        #Buttons
+        signup_btn=ttk.Button(signup_frame,text="sign Up",command=self.signup)
+        signup_btn.grid(row=4,column=0,pady=10)
+
+        back_btn=ttk.Button(signup_frame,text="back to Login",command=self.show_login_frame)
+        back_btn.grid(row=4,column=1,pady=10)
+
+
+    def signup(self):
+        """Handle user registration"""
+        email=self.signup_email.get()
+        password=self.signup_password.get()
+        confirm=self.signup_confirm.get()
+
+        if not email or not password:
+            messagebox.showwarning("Warning","Email and password are required")
+            return
+        if password!=confirm:
+            messagebox.showwarning("Warning","Password do not match")
+            return
+        try:
+            response=requests.post(f"{self.base_url}/signup",
+                                   json={"email":email,
+                                         "password":password})
+
+            data = response.json()
+
+            if response.status_code==200:
+                messagebox.showinfo("Success", data.get("message", "Account created successfully! Please login."))
+                self.show_login_frame()
+            else:
+                error_message = self.extract_error_message(data)
+                messagebox.showerror("Error", error_message)
+
+
+        except Exception as e:
+            messagebox.showerror("Error",f"Failed to create account: {str(e)}")
+
+
+    def extract_error_message(self,data):
+        """Extract user friendly error message"""
+        #1.Check for fastAPI validation errors
+        if isinstance(data.get("detail"),list):
+            for error in data["detail"]:
+                if "msg" in error:
+                    #Extract user-friendly part of msg
+                    msg=error["msg"]
+                    if "value is not a valid email address:" in msg:
+                        return "Please enter a valid email address with a proper domain(e.g., example@gmail.com)"
+                    return msg
+
+
+        if "detail" in data:
+            return data["detail"]
+        if "message" in data:
+            return data["message"]
+        return "Failed to create account. Please try again."
 
     def show_main_app(self):
         #clear existing widgets
@@ -232,7 +317,7 @@ class ExpenseTrackerApp:
     def load_expenses(self):
         """fetch and display expenses from API"""
         try:
-            headers={"Authorization":f'Bearer {self.access_token}'}
+            headers={"Authorization":f"Bearer {self.access_token}"}
             response=requests.get(f"{self.base_url}/expenses",headers=headers)
             if response.status_code==200:
                 #Clear existing items in tree view

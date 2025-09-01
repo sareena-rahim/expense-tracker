@@ -6,6 +6,8 @@ import uvicorn
 from main import ExpenseDatabase,AuthDatabase
 import uuid
 
+from starlette.responses import JSONResponse
+
 #create FastAPI
 app=FastAPI(
     title="Expense Tracker API",
@@ -83,8 +85,7 @@ async def signup(user_data:UserSignUp):
             }
         }
     else:
-        raise HTTPException(status_code=400,detail=result["message"])
-
+        raise HTTPException(status_code=400, detail=result["message"])
 @app.post("/login")
 async def login(user_data:UserSignIn):
     """login user and return access token"""

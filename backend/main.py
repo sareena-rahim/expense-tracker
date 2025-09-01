@@ -128,26 +128,40 @@ class AuthDatabase:
                 "email":email,
                 "password":password
             })
+
+
             if result.user:
                 supabase_admin.auth.admin.update_user_by_id(
                     result.user.id,
                     {"email_confirmed": True}
                 )
+
+
                 return {
                     "success":True,
                     "user":result.user,
                     "message":"User created successfully (auto-confirmed)"
                 }
+
+            error_message = result.error.message if result.error else "Signup failed. Please try again."
+            return {
+                "success": False,
+                "message": error_message
+            }
+
+
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "already registered" in error_msg or "user already registered" in error_msg:
+                return {
+                    "success": False,
+                    "message": "This email is already registered. Please log in instead."
+                }
             else:
                 return {
-                    "success":False,
-                    "message":"Failed to create user"
+                    "success": False,
+                    "message": error_msg
                 }
-        except Exception as e:
-            return {
-                "success":False,
-                "message":f"Error creating user {str(e)}"
-            }
 
     @staticmethod
     def sign_in(email:str,password:str):
